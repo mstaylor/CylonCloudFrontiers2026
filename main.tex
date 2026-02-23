@@ -158,7 +158,7 @@ This work makes the following research contributions:
 
 Scientific fields with significant data processing requirements, such as genomics, hydrology, and astronomy, can benefit from Cylon's distributed operations in serverless deployments. This enables elastic scaling for fluctuating workloads without the need for dedicated infrastructure.
 
-\textbf{(iii) Quantitative Cost-Performance Analysis for Serverless HPC:} We present an empirical cost model for data-intensive serverless workloads. Our analysis reveals that serverless computing can be cost-competitive for bursty workloads. For instance, a 32-worker distributed join operation on Lambda incurs approximately \$0.21 with pay-per-millisecond billing, whereas provisioned EC2 instances have idle time as the primary cost driver for intermittent workloads.
+\textbf{(iii) Quantitative Cost-Performance Analysis for Serverless HPC:} We present an empirical cost model for data-intensive serverless workloads. Our analysis shows that serverless can be cost-competitive for bursty workloads: a 32-worker distributed join costs approximately \$0.03 on Lambda with pay-per-millisecond billing, compared with provisioned EC2 instances where idle time dominates cost for intermittent workloads.
 
 \textbf{(iv) Comparison of the communication substrate for Serverless Collectives:} We evaluate three communication approaches for MPI-style collectives in serverless environments: direct TCP through NAT hole-punching, Redis, and AWS S3 message passing. Our results show that direct communication achieves 10-100$\times$ lower latency than storage-mediated alternatives, establishing NAT traversal as a viable approach for latency-sensitive distributed computing in serverless environments.
 
@@ -927,7 +927,7 @@ To demonstrate that our serverless architecture supports data engineering operat
     \label{fig:groupbyscaling}
 \end{figure}
 
-Figure \ref{fig:groupbyscaling} shows GroupBy weak scaling results on Lambda with 9.1 million rows per node. The operation scales from approximately 5 seconds at 1 node to 27 seconds at 32 nodes, following a similar scaling pattern to Join. The consistent performance with small error bars demonstrates that shuffle-based distributed operators work reliably in serverless environments.
+Figure \ref{fig:groupbyscaling} shows GroupBy weak scaling results on Lambda with 9.1 million rows per node. The operation scales from approximately 5 seconds at 1 node to 26 seconds at 16 nodes, achieving a 5$\times$ increase from baseline. This follows a similar scaling pattern to Join, demonstrating that shuffle-based distributed operators work reliably in serverless environments.
 
 \subsection{Communication Microbenchmarks}
 
@@ -979,7 +979,7 @@ A key motivation for serverless computing is cost optimization for bursty worklo
     \label{fig:costanalysis}
 \end{figure}
 
-Figure \ref{fig:costanalysis} shows the cost breakdown across node counts and operations. Step Functions orchestration cost (shown as the lighter portion) is negligible compared to Lambda compute cost. At 32 nodes, a GroupBy execution costs approximately \$0.21, while a Join using Redis-mediated communication costs only \$0.032 due to lower barrier latency.
+Figure \ref{fig:costanalysis} shows the cost breakdown across node counts and operations. Step Functions orchestration cost (shown as the lighter portion) is negligible compared to Lambda compute cost. At 32 nodes, a Join using Redis-mediated communication costs approximately \$0.032, demonstrating the cost-effectiveness of serverless for distributed data operations.
 
 \begin{figure}[ht]
     \begin{center}
