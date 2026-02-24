@@ -267,6 +267,7 @@ Within Cylon, the UCX communicator serializes tables, columns, and scalars into 
     \begin{center}
     \includegraphics[width=\linewidth]{figure3.jpg}
     \end{center}
+    \vspace{-.5cm}
     \caption{Distributed Memory Dataframe (DDMF)\cite{pererathesis}}
     \label{fig:distdataframe}
 \end{figure}
@@ -275,13 +276,18 @@ The Cylon channels API implements the AllToAll operation as point-to-point commu
 
 The initialization or bootstrapping of the Cylon UCX/UCC communicator necessitates the provision of communication metadata during startup. This metadata includes each process's world size, rank, and endpoint address. We utilize the \textit{Redis} key-value store to facilitate this exchange. Our design increments an atomic value to represent the rank. Before incrementing the value, the rank is set. Redis is launched externally to the HPC processes. The only requirement is that the \textit{Redis} host be provided before initializing the HPC runtime. Our experiments employed a combination of AWS ElastiCache, Redis, and ECS tasks, including the dockerized \textit{Redis} runtime. Depending on the specific experiment’s communication requirements, we selected a combination of \textit{Redis} deployments. One implementation limitation is that the stored metadata on \textit{Redis} must be cleared between subsequent experiments. Otherwise, the experiment executes non-deterministically and ultimately fails. In the case of executing N experiments of a given class (e.g., world size of 8 for 9.1 million rows), we need to configure N \textit{Redis} hosts when running experiments in parallel.
 
-\begin{figure}[ht]
+\begin{figure*}[ht]
+    %
+    % GVL: no need to use height as readable without it. Instead I trimmed left and right to make it fit in the two columns and therefore bigger ;-)
+    %
     \begin{center}
-    \includegraphics[width=\linewidth, height=200pt]{figure4.jpg}
+    \includegraphics[width=\linewidth, trim={2.1cm 0 2cm 0}, clip]
+    {figure4.jpg}
     \end{center}
+    \vspace{-1cm}
     \caption{Unified Communication X (UCX) Library Architecture\cite{shamis2015ucx}}
     \label{fig:ucxarch}
-\end{figure}
+\end{figure*}
 
 Our experiment design, which utilized UCX/UCC for our initial experiments, proved highly effective for most AWS and HPC experiments. One aspect of our design involved using Docker. Docker uses OS-level virtualization to deploy software in packages or containers to create a runtime environment that could be seamlessly deployed across both HPC and AWS\cite{dockerwiki}. We pushed our Dockerized environments to Dockerhub and employed Apptainer on Rivanna to construct a Singularity container encapsulating the Cylon runtime. A significant advantage of this approach is that modifications to the environment (or Dockerfile) were not required. Consequently, all our experiments utilized the same runtime, resulting in a consistent and derivative approach across infrastructure.  We believe our architecture and the inclusion of UCX/UCC to be a novel contribution on its own, and based on our research, it is the only case we could find where UCC/UCX was being used for ML/AI pipelines such as Cylon.
 
@@ -296,6 +302,7 @@ A similar issue was encountered with AWS Lambda functions: we could not leverage
     \begin{center}
     \includegraphics[width=\linewidth]{figure5.jpg}
     \end{center}
+    \vspace{-0.5cm}
     \caption{Network Address Translation (NAT) Hole Punching\cite{copik2023fmi}}
     \label{fig:natholepunching}
 \end{figure}
@@ -308,13 +315,13 @@ To achieve this, we created a Dockerfile that included all the necessary librari
 
 Including this library is an ideal choice, considering the limitations imposed by AWS Lambda. A higher-level abstraction is necessary for direct communication between Lambda functions. Furthermore, there are cost considerations based on the AWS Lambda cost model, where the request rate, execution time, and function size directly impact the overall cost. By supporting direct communication in serverless, we can save costs associated with data storage compared to the current state-of-the-art for serverless applications in domains like bioinformatics. These applications often require parallel, high-performance analysis that would benefit from high-performance communication. Based on results published in the paper, "FMI: Fast and Cheap Message Passing for Serverless Functions," we were able to achieve similar savings as reported in the paper (i.e., 397 times savings compared to the use of mediated storage for Machine Learning applications reported by Copik et al.)\cite{copik2023fmi}.
 
-\begin{figure*}[ht]
+\begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\textwidth]{figure6.jpg}
+    \includegraphics[width=\linewidth]{figure6.png}
     \end{center}
     \caption{Serverless Data Engineering Architecture}
     \label{fig:serverlessdataengineering}
-\end{figure*}
+\end{figure}
 
 Figure \ref{fig:serverlessdataengineering} illustrates our architecture. Our design calls for the use of an AWS Step Function to encapsulate the AWS Serverless Execution Engine, as shown in Figure \ref{fig:fmistatemachine}. AWS Step Functions are a Software as a Service (SaaS) feature that facilitates the orchestration of AWS services into serverless workflows. The \textit{Lambda: init} function receives a payload containing various parameters, such as the number of rows, world size, number of iterations, target S3 bucket, script, and output paths. We utilize a specific S3 bucket to store invocation results in a folder using the \textit{Boto3} library. This approach is advantageous over parsing the data output from log files in AWS CloudWatch, a SaaS metrics repository created and utilized by AWS services, as it would be cumbersome. The Lambda invoke state forwards this input JSON payload to a \textit{cylon\_init} AWS Lambda function. This function validates the availability of the rendezvous server. It generates an N-sized array of JSON payloads, which is then sent to the \textit{Map}, \textit{ExtractAndInvokeLambda} states, which is configured to use distributed processing mode to enable highly parallel execution. Next, each generated payload is forwarded to the Lambda: Invoke state from the pass \textit{ExtractAndInvokeLambda} state.  This state passes the input to output, executing the \textit{cylon\_executor} AWS Lambda function. The runtime of the \textit{cylon\_executor} function includes the high-performance MLSys runtime described earlier, which consists of a communicator that supports direct communication over a NAT gateway described earlier. The incoming payload specifies the location of the target script in the S3 bucket. Upon execution of the Lambda function, the contents of the specified S3 bucket are retrieved and persisted in temporary ephemeral storage. Subsequently, Python is used to execute the script used for our experiments. Our design supports both a single script and a folder containing Python scripts and modules.
 
@@ -322,7 +329,7 @@ Figure \ref{fig:serverlessdataengineering} illustrates our architecture. Our des
 
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth]{figure7.jpg}
+    \includegraphics[width=0.80\linewidth, trim={1cm 0.2cm 2cm 0.2cm}, clip]{figure7.png}
     \end{center}
     \caption{AWS Step Function for Serverless Data Parallel Task}
     \label{fig:fmistatemachine}
@@ -336,7 +343,7 @@ During execution, the \textit{cylon\_executor} connects with the Rendezvous Serv
 As part of this research, we conducted microbenchmark experiments for the distributed join operation detailed in Table \Ref{tab:exp_table1}. The size of the infrastructure relative to memory and CPU cores was configured based on the memory available to AWS Lambda functions, which has a maximum of 10240 MB. Therefore, we configured a maximum and a close to half-size configuration for each set of experiments to be 10 GB and 6 GB.  
 
 
-\begin{table}[!hbp]
+\begin{table}[!hbtp]
     \centering
     \small
    
@@ -361,17 +368,12 @@ As part of this research, we conducted microbenchmark experiments for the distri
     \end{tabular}
     \label{tab:exp_table1}
 \end{table}
-
-\subsection{Join Operation Scalability}
-
-For these experiments, we ran scaling experiments plotted as speedup on AWS Lambda, EC2 ECS clusters and Rivanna.  The experiment design involved running experiments on derivative-configured infrastructure.  For EC2,  we used Ubuntu 22.04.2 LTS (Intel(R) Xeon(R) CPU E5-2670 v2 @ 2.50GHz) for hosts configured with two virtual CPU and 15 GB of memory (m3xlarge) and for hosts configured with one virtual CPU and 7.5 GB of memory (m3large).  For Rivanna, we ran experiments on 1 (standard partition) and 2, 4, 8, 16, 32, and 64 (parallel partition) CPU nodes (Intel(R) Xeon(R) Gold 6248 CPU @ 2.50GHz).  To match the performance and characteristics of AWS infrastructure on Rivanna, we configured experiments that would run on 10 and 6 GB memory configurations.  Rivanna experiments were executed in Singularity containers so that all experiments across infrastructure would be executed using dockerized processes.  For AWS Lambda, functions were configured to use 6GB and 10GB of memory.  Memory configuration influences the CPU available.  For the 6 GB configuration, 4 CPU cores are available, and for the 10 GB configuration, 6 CPU cores are available.  Both configurations use a custom-built AWS Lambda container with all necessary Python and native libraries.  The Python code block in Listing 1 details the derivative experiment.  In this case, we determine the use of our serverless communicator by the env variable and call the merge operation, which is implemented as a distributed operation.  This is found in lines 30-47.
-
-
-\begin{lstlisting}[style=pythonstyle, float, caption=Python Scaling Join Experiment]
+\begin{lstlisting}[
+style=pythonstyle, float, 
+basicstyle=\footnotesize\ttfamily,
+caption=Python Scaling Join Experiment]
 import pandas as pd
 from numpy.random import default_rng
-
-
 
 init_start = time.time()
 
@@ -393,7 +395,6 @@ init_start = time.time()
     com_init = (init_end - init_start) * 1000
 
     u = data['unique']
-
 ...
     for i in range(data['it']):
 
@@ -416,8 +417,6 @@ init_start = time.time()
             df3 = df1.merge(df2, on=[0], algorithm='sort', env=env)
 ...
 \end{lstlisting} 
-
-
 \begin{table}
 %\setlength{\tabcolsep}{5pt}
 	\centering
@@ -616,6 +615,15 @@ init_start = time.time()
 		\bottomrule
 	\end{tabular}
 \end{table}
+\subsection{Join Operation Scalability}
+
+For these experiments, we ran scaling experiments plotted as speedup on AWS Lambda, EC2 ECS clusters and Rivanna.  The experiment design involved running experiments on derivative-configured infrastructure.  For EC2,  we used Ubuntu 22.04.2 LTS (Intel(R) Xeon(R) CPU E5-2670 v2 @ 2.50GHz) for hosts configured with two virtual CPU and 15 GB of memory (m3xlarge) and for hosts configured with one virtual CPU and 7.5 GB of memory (m3large).  For Rivanna, we ran experiments on 1 (standard partition) and 2, 4, 8, 16, 32, and 64 (parallel partition) CPU nodes (Intel(R) Xeon(R) Gold 6248 CPU @ 2.50GHz).  To match the performance and characteristics of AWS infrastructure on Rivanna, we configured experiments that would run on 10 and 6 GB memory configurations.  Rivanna experiments were executed in Singularity containers so that all experiments across infrastructure would be executed using dockerized processes.  For AWS Lambda, functions were configured to use 6GB and 10GB of memory.  Memory configuration influences the CPU available.  For the 6 GB configuration, 4 CPU cores are available, and for the 10 GB configuration, 6 CPU cores are available.  Both configurations use a custom-built AWS Lambda container with all necessary Python and native libraries.  The Python code block in Listing 1 details the derivative experiment.  In this case, we determine the use of our serverless communicator by the env variable and call the merge operation, which is implemented as a distributed operation.  This is found in lines 30-47.
+
+
+
+
+
+
 
 Table \ref{tab:weak-exp_table} summarizes the weak scaling results from join
 operations for this set of experiments.  We used 9.1 million rows for weak scaling; for strong scaling, we used 4.5 million rows.  The choice of 4.5 million rows was necessary based on the memory limitations imposed by AWS Lambda.    
@@ -626,45 +634,45 @@ For these scaling experiments, we calculate the speedup as the execution time ra
 \]
 
 For the standard deviation or error propagation, we used the following formula applied to the observed standard deviation across executions (i.e., four separate experiments were completed for each node).
- \newpage
+% \newpage
 \[
     \frac{\Delta{S}}{S} = \sqrt{\left(\frac{\Delta{T_1}}{T_1}\right)^2 + \left(\frac{\Delta{T_2}}{T_2}\right)^2}
 \]
-\newline
 Where:
-\newline
-\newline
-S is the Speedup: S = $\frac{T_1}{T_2}$
-\newline
-\newline
-$\Delta{S}$ is the error in speedup
-\newline
-\newline
-$T_1$ is the baseline execution time (the time for one node)
-\newline
-\newline
-$\Delta{T}_1$ is the error in baseline execution time
-\newline
-\newline
-$T_2$ is the parallel execution time
-\newline
-\newline
-$\Delta{T}_2$ is the error in parallel execution time
-\newline
-\newline
+\begin{align*}
+    S          & = \text{the Speedup, } \frac{T_1}{T_2} \\
+    \Delta S   & = \text{the error in speedup} \\
+    T_1        & = \text{the baseline execution time (the time for one node)} \\
+    \Delta T_1 & = \text{the error in baseline execution time} \\
+    T_2 & = \text{Parallel execution time} \\
+    \Delta T_2 & = \text{Error in parallel execution time}
+\end{align*}
 
-Figure \ref{fig:weakscalinground3} depicts the weak scaling experiments.  In an ideal scenario, we should see close to constant performance.  However, based on system overhead, we mitigate variation by executing ten iterations for each experiment.  In general, as parallelism is increased, resource and scheduling overhead contribute to the decreasing performance across weak scaling experiments.  We observe that our serverless communicator design resulted in performance that closely approximates EC2 weak scaling behavior.  
+%\newline
 
+% Bud: I like the align method better as = is alligned and uses less space.
 
-
-\begin{figure}[ht]
-    \begin{center}
-    \includegraphics[width=\linewidth]{figure8.jpg}
-    \end{center}
-    \caption{Comparison of weak scaling for the Join operation across infrastructure including AWS Lambda}
-    \label{fig:weakscalinground3}
-\end{figure}
-
+%Where:
+%\newline
+%\newline
+%S is the Speedup: S = $\frac{T_1}{T_2}$
+%\newline
+%\newline
+%$\Delta{S}$ is the error in speedup
+%\newline
+%\newline
+%$T_1$ is the baseline execution time (the time for one node)
+%\newline
+%\newline
+%$\Delta{T}_1$ is the error in baseline execution time
+%\newline
+%\newline
+%$T_2$ is the parallel execution time
+%\newline
+%\newline
+%$\Delta{T}_2$ is the error in parallel execution time
+%\newline
+%\newline
 
 \begin{table}
 %\setlength{\tabcolsep}{5pt}
@@ -865,19 +873,29 @@ Figure \ref{fig:weakscalinground3} depicts the weak scaling experiments.  In an 
 	\end{tabular}
 \end{table}
 
+
+
+Figure \ref{fig:weakscalinground3} depicts the weak scaling experiments.  In an ideal scenario, we should see close to constant performance.  However, based on system overhead, we mitigate variation by executing ten iterations for each experiment.  In general, as parallelism is increased, resource and scheduling overhead contribute to the decreasing performance across weak scaling experiments.  We observe that our serverless communicator design resulted in performance that closely approximates EC2 weak scaling behavior.  
 Table \ref{tab:strong-exp_table} presents the results of strong scaling experiments involving 4.5 million rows. Like weak scaling, we conducted each experiment four times, performing ten iterations for each trial. The results of strong scaling are illustrated in Figure \ref{fig:strongscalinground3}. We observe high latencies across the infrastructure for fewer than four nodes. However, we also observe a general convergence of latency as the number of nodes ranges from 16 to 64. This supports utilizing cloud resources as a viable alternative for data-parallel pre-processing workloads.  We observe that the scaling efficiency of AWS Lambda achieves within 6.5\% of EC2 at 64 nodes, based on implementing direct communication via NAT Traversal TCP Hole Punching for serverless architectures such as AWS Lambda and AWS Fargate.
+
+
 
 %Furthermore, we assert that cost savings can be realized through cloud infrastructure, considering the variable incremental costs compared to the fixed costs associated with traditional HPC clusters. For instance, in the Fall 2024 Datascience 5110 class at UVA, we used a related implementation of FMI for AWS Lambda direct communication. This resulted in significant savings of over 70\% compared to traditional AWS usage for Spring 2024.
 
-
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth]{figure9.jpg}
+    \includegraphics[width=\linewidth]{figure8.png}
+    \end{center}
+    \caption{Comparison of weak scaling for the Join operation across infrastructure including AWS Lambda}
+    \label{fig:weakscalinground3}
+\end{figure}
+\begin{figure}[ht]
+    \begin{center}
+    \includegraphics[width=\linewidth]{figure9.png}
     \end{center}
     \caption{Comparison of strong scaling for the Join operation across infrastructure including AWS Lambda}
     \label{fig:strongscalinground3}
 \end{figure}
-
 Table \ref{tab:speedup-comparison} provides a detailed comparison of scaling efficiency between Lambda and EC2. When comparing speedup relative to each platform's single-node baseline, Lambda achieved a 15.85$\times$ speedup at 64 nodes compared with EC2's 16.96$\times$, representing a difference of only 6.5\% in scaling behavior. This demonstrates that serverless functions can achieve scaling performance comparable to that of provisioned VMs for communication-intensive workloads.
 
 \begin{table}[ht]
@@ -907,7 +925,7 @@ To quantify the benefit of our direct NAT hole-punching approach, we conducted b
 
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth]{figure10.jpg}
+    \includegraphics[width=\linewidth]{figure10.png}
     \end{center}
     \caption{Communication Infrastructure Comparison: Direct TCP (NAT hole-punching) vs Redis vs S3 for distributed Join on AWS Lambda}
     \label{fig:infracomparison}
@@ -921,7 +939,7 @@ To demonstrate that our serverless architecture supports data engineering operat
 
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth]{figure12.jpg}
+    \includegraphics[width=\linewidth]{figure11.png}
     \end{center}
     \caption{GroupBy weak scaling on AWS Lambda using direct TCP communication}
     \label{fig:groupbyscaling}
@@ -935,7 +953,7 @@ To isolate communication overhead from application-level computation, we conduct
 
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth]{figure15.jpg}
+    \includegraphics[width=\linewidth]{figure12.png}
     \end{center}
     \caption{AllReduce latency vs message size on AWS Lambda}
     \label{fig:allreducelatency}
@@ -945,7 +963,7 @@ Figure \ref{fig:allreducelatency} shows AllReduce latency across message sizes f
 
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth]{figure16.jpg}
+    \includegraphics[width=\linewidth]{figure13.png}
     \end{center}
     \caption{Barrier latency scaling on AWS Lambda}
     \label{fig:barrierlatency}
@@ -954,36 +972,32 @@ Figure \ref{fig:allreducelatency} shows AllReduce latency across message sizes f
 Figure \ref{fig:barrierlatency} shows Barrier latency scaling with node count. Barrier latency scales with $\log_2(N)$ as expected for a binomial tree algorithm: 0.9ms at 2 nodes, 2.7ms at 8 nodes, and 7ms at 32 nodes. This confirms that synchronization overhead remains in the single-digit millisecond range, fast enough for BSP workloads requiring frequent barriers.
 
 \subsection{Serverless Execution Time Composition}
-
 Figure \ref{fig:timecomposition} shows the breakdown of execution time into three phases: initialization (connection setup via NAT traversal), data generation, and computation. This breakdown provides insight into where time is spent in serverless execution and helps explain performance differences across platforms.
-
 \begin{figure}[ht]
-    \begin{center}
-    \includegraphics[width=\linewidth]{figure11.jpg}
+    \begin{center}   \includegraphics[width=\linewidth]{figure14.png}
     \end{center}
     \caption{Serverless execution time composition: initialization, data generation, and computation phases}
     \label{fig:timecomposition}
 \end{figure}
 
+%
+% GVL: I STRONGLY SUGGEST TO USE MY CLIP SPACING AS FIGURES MUST NOT HAVE A DOUBLE CAPTION!
+% THIS ALSO WILL RESULT THAT ALL IMAGES FIT ON A PAGE.
 At 32 nodes, the NAT traversal initialization phase dominates wall-clock time for direct TCP communication, requiring approximately 31.5 seconds for connection setup. This connection establishment time scales linearly with the number of tree levels in the binomial connection algorithm. In contrast, storage-mediated channels (Redis, S3) have negligible initialization overhead but incur higher per-operation latency during computation.
 
 \subsection{Cost Analysis}
 
 A key motivation for serverless computing is cost optimization for bursty workloads. We implemented a comprehensive cost-tracking framework to provide empirical cost analysis for our experiments, capturing Lambda compute cost (GB-seconds), Step Functions orchestration cost (state transitions), and data transfer costs.
-
 \begin{figure}[ht]
-    \begin{center}
-    \includegraphics[width=\linewidth]{figure13.jpg}
+    \begin{center}    \includegraphics[width=\linewidth]{figure15.png}
     \end{center}
     \caption{Serverless execution cost analysis: Lambda compute and Step Functions orchestration}
     \label{fig:costanalysis}
 \end{figure}
-
 Figure \ref{fig:costanalysis} shows the cost breakdown across node counts and operations. Step Functions orchestration cost (shown as the lighter portion) is negligible compared to Lambda compute cost. At 32 nodes, a Join using Redis-mediated communication costs approximately \$0.032, demonstrating the cost-effectiveness of serverless for distributed data operations.
 
 \begin{figure}[ht]
-    \begin{center}
-    \includegraphics[width=\linewidth]{figure14.jpg}
+    \begin{center}    \includegraphics[width=\linewidth]{figure16.png}
     \end{center}
     \caption{Cost comparison by operation and communication channel}
     \label{fig:costperoperation}
@@ -1015,21 +1029,23 @@ Lastly, we would like to investigate real-world applications and detail the perf
 % !TEX root = ../main.tex
 \section{Conclusion}
 \label{sec:conclusion}
+In this work, we demonstrated that BSP-style data-intensive workloads can execute efficiently in serverless environments by rethinking the communication substrate. By integrating direct communication through NAT traversal and TCP hole punching into Cylon, we enabled message passing among AWS Lambda functions that avoids the latency penalties of storage-mediated approaches such as object stores or Redis. Our experimental results show that AWS Lambda achieves scaling efficiency within 6.5\% of EC2 at 64 nodes, with 10–100× lower latency than storage-based communication. Our work further provides a quantitative cost-performance analysis, showing serverless to be cost-competitive for bursty workloads, and compares communication substrates (direct TCP, Redis, and S3), establishing NAT-based communication as significantly lower latency (10–100× faster) than storage-mediated alternatives. These findings challenge the prevailing assumption that serverless computing is limited to embarrassingly parallel workloads and establish that high-performance distributed data engineering and ML preprocessing are feasible in FaaS environments.
+
+We detail our design of UCX and UCC as an alternative to MPI in BSP communication between processes based on the clear applicability to serverful cloud and HPC environments. The novelty of this work is apparent based on a survey of the literature on similar work involving distributed data frames. We applied this work directly and refined the initial implementation to support both serverful and serverless architectures of cloud providers, such as AWS. Additionally, we implemented direct support for Python via Cython, enabling the execution of data engineering tasks in Python without the need to write native code. We also completed the integration of UCC into Cylon by removing our implementation of \textit{AllGatherV} in favor of UCC's support for variable-length data. Furthermore, we included container support across infrastructures to facilitate the execution of experiments and library usage.  On the serverless side, we detailed our serverless communicator, drawing inspiration from the FMI library, and conducted experiments to compare this design with our serverful design.
 
 
-In this paper, we detail our design of UCX and UCC as an alternative to MPI in BSP communication between processes based on the clear applicability to serverful cloud and HPC environments. The novelty of this work is apparent based on a survey of the literature on similar work involving distributed data frames. We applied this work directly and refined the initial implementation to support both serverful and serverless architectures of cloud providers, such as Amazon Web Services. Additionally, we implemented direct support for Python via Cython, enabling the execution of data engineering tasks in Python without the need to write native code. We also completed the integration of UCC into Cylon by removing our implementation of \textit{AllGatherV} in favor of UCC's support for variable-length data. Furthermore, we included container support across infrastructures to facilitate the execution of experiments and library usage.  On the serverless side, we detailed our serverless communicator, drawing inspiration from the FMI library, and conducted experiments to compare this design with our serverful design.
+During this research, we faced several challenges. We first validated Cylon on AWS and addressed deployment issues by using Apptainer (Singularity) containers on HPC systems. Second, the reference FMI library did not include an All-To-All collective operation that we needed for Cylon communicator integration. Third, it was necessary to include variable allgather, variable gather, support for non-blocking operations, retries for socket connection failures, a ping/ping capability to prevent eager termination of sockets, and rank calculation using atomic counters.  An initial challenge was coordination between nodes and associated race conditions.  Rank-based ordering for blocking operations using Redis locks was incorporated into our design to address race conditions observed during blocking socket operations.  Note that FMI, in its original form, only supports blocking operations, and our design called for non-blocking I/O.  These additions resulted in improvements and a robust communicator that can be leveraged across serverless platforms.
 
 
-During this research, we encountered several challenges.  We first validated the execution of Cylon on AWS by building the.  We solved this problem by using Apptainer or Singularity and running Cylon in containers on HPC systems.  
-
-Second, the reference FMI library did not include an All-To-All collective operation that we needed for Cylon communicator integration. Second, it was necessary to include variable allgather, variable gather, support for non-blocking operations, retries for socket connection failures, a ping/ping capability to prevent eager termination of sockets, and rank calculation using atomic counters.  An initial challenge was coordination between nodes and associated race conditions.  Rank-based ordering for blocking operations using Redis locks was incorporated into our design to address race conditions observed during blocking socket operations.  Note that FMI, in its original form, only supports blocking operations, and our design called for non-blocking I/O.  These additions resulted in improvements and a robust communicator that can be leveraged across serverless platforms.
-
-
-In this paper, we demonstrate experiments using Cylon and UCC/UCX, comparing them to similar experiments conducted on the University of Virginia's Rivanna HPC cluster to validate the effectiveness and applicability of running data engineering tasks at scale on clouds. We discussed the challenges of using serverless technology, particularly in terms of communication and coordination. We describe and design an approach that utilizes NAT traversal through NAT hole punching to enable direct communication between AWS Lambda functions. Additionally, we highlight the relevance of this work to serverless containers and emphasize the importance of architecting communication layers at high levels of abstraction when executing ML workloads on serverless compute. We demonstrated the effectiveness of NAT Traversal through NAT hole punching and observed strong scaling performance similar to what is achievable on HPCs such as Rivanna in Cylon. We believe that this approach can be applied to bioinformatics analysis, genome research, hydrology, astronomy, earthquake prediction, and other time series-based foundational models, as surveyed in the current state of the art in these fields.
+%In this paper, we demonstrate experiments using Cylon and UCC/UCX, comparing them to similar experiments conducted on the University of Virginia's Rivanna HPC cluster to validate the effectiveness and applicability of running data engineering tasks at scale on clouds. We discussed the challenges of using serverless technology, particularly in terms of communication and coordination. We describe and design an approach that utilizes NAT traversal through NAT hole punching to enable direct communication between AWS Lambda functions. Additionally, we highlight the relevance of this work to serverless containers and emphasize the importance of architecting communication layers at high levels of abstraction when executing ML workloads on serverless compute. We demonstrated the effectiveness of NAT Traversal through NAT hole punching and observed strong scaling performance similar to what is achievable on HPCs such as Rivanna in Cylon. 
+Our approach can be applied to bioinformatics analysis, genome research, hydrology, astronomy, earthquake prediction, and other time series-based foundational models, as surveyed in the current state of the art in these fields.
 
 
 \section*{Acknowledgments}
-We gratefully acknowledge the support of the Department of Energy and the National Science Foundation through DE-SC0023452, NSF-2421782, NSF - 2504401, and NSF-2411009 grants.
+We gratefully acknowledge the support of the Department of Energy and the National Science Foundation through DE-SC0023452 FAIR Surrogate Benchmarks Supporting AI and Simulation Research, NSF-Simons AI Institute for Cosmic Origins (CosmicAI: Grant 2421782) Seed Grant, NSF-2200409 for CyberTraining:CIC: CyberTraining for
+Students and Technologies from Generation Z. NSF-2504401 OAC Core: RINAS: Data I/O CyberInfrastructure
+for Extreme-scale Foundation Model and Generative AI
+Training on HPC.
 
 
 \bibliographystyle{ACM-Reference-Format}
