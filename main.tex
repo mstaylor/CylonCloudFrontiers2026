@@ -276,18 +276,13 @@ The Cylon channels API implements the AllToAll operation as point-to-point commu
 
 The initialization or bootstrapping of the Cylon UCX/UCC communicator necessitates the provision of communication metadata during startup. This metadata includes each process's world size, rank, and endpoint address. We utilize the \textit{Redis} key-value store to facilitate this exchange. Our design increments an atomic value to represent the rank. Before incrementing the value, the rank is set. Redis is launched externally to the HPC processes. The only requirement is that the \textit{Redis} host be provided before initializing the HPC runtime. Our experiments employed a combination of AWS ElastiCache, Redis, and ECS tasks, including the dockerized \textit{Redis} runtime. Depending on the specific experiment’s communication requirements, we selected a combination of \textit{Redis} deployments. One implementation limitation is that the stored metadata on \textit{Redis} must be cleared between subsequent experiments. Otherwise, the experiment executes non-deterministically and ultimately fails. In the case of executing N experiments of a given class (e.g., world size of 8 for 9.1 million rows), we need to configure N \textit{Redis} hosts when running experiments in parallel.
 
-\begin{figure*}[ht]
-    %
-    % GVL: no need to use height as readable without it. Instead I trimmed left and right to make it fit in the two columns and therefore bigger ;-)
-    %
+\begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth, trim={2.1cm 0 2cm 0}, clip]
-    {figure4.jpg}
+    \includegraphics[width=\linewidth]{figure4.jpg}
     \end{center}
-    \vspace{-1cm}
     \caption{Unified Communication X (UCX) Library Architecture\cite{shamis2015ucx}}
     \label{fig:ucxarch}
-\end{figure*}
+\end{figure}
 
 Our experiment design, which utilized UCX/UCC for our initial experiments, proved highly effective for most AWS and HPC experiments. One aspect of our design involved using Docker. Docker uses OS-level virtualization to deploy software in packages or containers to create a runtime environment that could be seamlessly deployed across both HPC and AWS\cite{dockerwiki}. We pushed our Dockerized environments to Dockerhub and employed Apptainer on Rivanna to construct a Singularity container encapsulating the Cylon runtime. A significant advantage of this approach is that modifications to the environment (or Dockerfile) were not required. Consequently, all our experiments utilized the same runtime, resulting in a consistent and derivative approach across infrastructure.  We believe our architecture and the inclusion of UCX/UCC to be a novel contribution on its own, and based on our research, it is the only case we could find where UCC/UCX was being used for ML/AI pipelines such as Cylon.
 
