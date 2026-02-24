@@ -315,13 +315,13 @@ To achieve this, we created a Dockerfile that included all the necessary librari
 
 Including this library is an ideal choice, considering the limitations imposed by AWS Lambda. A higher-level abstraction is necessary for direct communication between Lambda functions. Furthermore, there are cost considerations based on the AWS Lambda cost model, where the request rate, execution time, and function size directly impact the overall cost. By supporting direct communication in serverless, we can save costs associated with data storage compared to the current state-of-the-art for serverless applications in domains like bioinformatics. These applications often require parallel, high-performance analysis that would benefit from high-performance communication. Based on results published in the paper, "FMI: Fast and Cheap Message Passing for Serverless Functions," we were able to achieve similar savings as reported in the paper (i.e., 397 times savings compared to the use of mediated storage for Machine Learning applications reported by Copik et al.)\cite{copik2023fmi}.
 
-\begin{figure*}[ht]
+\begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\textwidth]{figure6.jpg}
+    \includegraphics[width=\linewidth]{figure6.jpg}
     \end{center}
     \caption{Serverless Data Engineering Architecture}
     \label{fig:serverlessdataengineering}
-\end{figure*}
+\end{figure}
 
 Figure \ref{fig:serverlessdataengineering} illustrates our architecture. Our design calls for the use of an AWS Step Function to encapsulate the AWS Serverless Execution Engine, as shown in Figure \ref{fig:fmistatemachine}. AWS Step Functions are a Software as a Service (SaaS) feature that facilitates the orchestration of AWS services into serverless workflows. The \textit{Lambda: init} function receives a payload containing various parameters, such as the number of rows, world size, number of iterations, target S3 bucket, script, and output paths. We utilize a specific S3 bucket to store invocation results in a folder using the \textit{Boto3} library. This approach is advantageous over parsing the data output from log files in AWS CloudWatch, a SaaS metrics repository created and utilized by AWS services, as it would be cumbersome. The Lambda invoke state forwards this input JSON payload to a \textit{cylon\_init} AWS Lambda function. This function validates the availability of the rendezvous server. It generates an N-sized array of JSON payloads, which is then sent to the \textit{Map}, \textit{ExtractAndInvokeLambda} states, which is configured to use distributed processing mode to enable highly parallel execution. Next, each generated payload is forwarded to the Lambda: Invoke state from the pass \textit{ExtractAndInvokeLambda} state.  This state passes the input to output, executing the \textit{cylon\_executor} AWS Lambda function. The runtime of the \textit{cylon\_executor} function includes the high-performance MLSys runtime described earlier, which consists of a communicator that supports direct communication over a NAT gateway described earlier. The incoming payload specifies the location of the target script in the S3 bucket. Upon execution of the Lambda function, the contents of the specified S3 bucket are retrieved and persisted in temporary ephemeral storage. Subsequently, Python is used to execute the script used for our experiments. Our design supports both a single script and a folder containing Python scripts and modules.
 
@@ -882,20 +882,20 @@ Table \ref{tab:strong-exp_table} presents the results of strong scaling experime
 
 %Furthermore, we assert that cost savings can be realized through cloud infrastructure, considering the variable incremental costs compared to the fixed costs associated with traditional HPC clusters. For instance, in the Fall 2024 Datascience 5110 class at UVA, we used a related implementation of FMI for AWS Lambda direct communication. This resulted in significant savings of over 70\% compared to traditional AWS usage for Spring 2024.
 
-\begin{figure*}[ht]
+\begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\textwidth]{figure8.jpg}
+    \includegraphics[width=\linewidth]{figure8.jpg}
     \end{center}
     \caption{Comparison of weak scaling for the Join operation across infrastructure including AWS Lambda}
     \label{fig:weakscalinground3}
-\end{figure*}
-\begin{figure*}[ht]
+\end{figure}
+\begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\textwidth]{figure9.jpg}
+    \includegraphics[width=\linewidth]{figure9.jpg}
     \end{center}
     \caption{Comparison of strong scaling for the Join operation across infrastructure including AWS Lambda}
     \label{fig:strongscalinground3}
-\end{figure*}
+\end{figure}
 Table \ref{tab:speedup-comparison} provides a detailed comparison of scaling efficiency between Lambda and EC2. When comparing speedup relative to each platform's single-node baseline, Lambda achieved a 15.85$\times$ speedup at 64 nodes compared with EC2's 16.96$\times$, representing a difference of only 6.5\% in scaling behavior. This demonstrates that serverless functions can achieve scaling performance comparable to that of provisioned VMs for communication-intensive workloads.
 
 \begin{table}[ht]
@@ -923,13 +923,13 @@ The faster single-node execution time observed on Rivanna compared to EC2 is att
 
 To quantify the benefit of our direct NAT hole-punching approach, we conducted baseline comparisons against storage-mediated communication alternatives commonly used in serverless environments. Figure \ref{fig:infracomparison} shows weak scaling results for the Join operation using three communication channels on AWS Lambda: direct TCP via NAT traversal, Redis-mediated, and S3-mediated message passing.
 
-\begin{figure*}[ht]
+\begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\textwidth]{figure10.jpg}
+    \includegraphics[width=\linewidth]{figure10.jpg}
     \end{center}
     \caption{Communication Infrastructure Comparison: Direct TCP (NAT hole-punching) vs Redis vs S3 for distributed Join on AWS Lambda}
     \label{fig:infracomparison}
-\end{figure*}
+\end{figure}
 
 Our results demonstrate that direct communication via NAT traversal achieves 10-100$\times$ lower latency than storage-mediated alternatives. At 32 nodes, direct TCP completed the Join operation in approximately 60 seconds, compared to 255 seconds for Redis and 455 seconds for S3. The S3-mediated approach exhibits the highest latency due to per-object PUT/GET round-trip overhead for each shuffle exchange. Redis, while faster than S3 due to in-memory storage, still incurs significant serialization and network hop overhead compared to direct peer-to-peer TCP connections. These results establish NAT traversal as a viable approach for latency-sensitive distributed computing in serverless environments.
 
@@ -937,13 +937,13 @@ Our results demonstrate that direct communication via NAT traversal achieves 10-
 
 To demonstrate that our serverless architecture supports data engineering operations beyond Join, we conducted weak scaling experiments for the GroupBy aggregation operator on AWS Lambda. GroupBy uses the same shuffle (all-to-all) communication pattern as Join, partitioning data by group key columns before performing local aggregation.
 
-\begin{figure*}[ht]
+\begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\textwidth]{figure11.jpg}
+    \includegraphics[width=\linewidth]{figure11.jpg}
     \end{center}
     \caption{GroupBy weak scaling on AWS Lambda using direct TCP communication}
     \label{fig:groupbyscaling}
-\end{figure*}
+\end{figure}
 
 Figure \ref{fig:groupbyscaling} shows GroupBy weak scaling results on Lambda with 9.1 million rows per node. The operation scales from approximately 5 seconds at 1 node to 26 seconds at 16 nodes, achieving a 5$\times$ increase from baseline. This follows a similar scaling pattern to Join, demonstrating that shuffle-based distributed operators work reliably in serverless environments.
 
@@ -951,35 +951,35 @@ Figure \ref{fig:groupbyscaling} shows GroupBy weak scaling results on Lambda wit
 
 To isolate communication overhead from application-level computation, we conducted microbenchmarks measuring the performance of MPI-style collective operations on AWS Lambda. These benchmarks are particularly relevant to distributed ML workloads, where AllReduce is fundamental to data-parallel gradient aggregation.
 
-\begin{figure*}[ht]
+\begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\textwidth]{figure12.jpg}
+    \includegraphics[width=\linewidth]{figure12.jpg}
     \end{center}
     \caption{AllReduce latency vs message size on AWS Lambda}
     \label{fig:allreducelatency}
-\end{figure*}
+\end{figure}
 
 Figure \ref{fig:allreducelatency} shows AllReduce latency across message sizes from 8 bytes to 1 MB. Latency remains relatively flat across message sizes, indicating latency-bound rather than bandwidth-bound behavior for most operations. At 32 nodes, AllReduce completes in approximately 13 milliseconds, demonstrating that MPI-style collectives can achieve millisecond-scale latency in serverless environments.
 
-\begin{figure*}[ht]
+\begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\textwidth]{figure13.jpg}
+    \includegraphics[width=\linewidth]{figure13.jpg}
     \end{center}
     \caption{Barrier latency scaling on AWS Lambda}
     \label{fig:barrierlatency}
-\end{figure*}
+\end{figure}
 
 Figure \ref{fig:barrierlatency} shows Barrier latency scaling with node count. Barrier latency scales with $\log_2(N)$ as expected for a binomial tree algorithm: 0.9ms at 2 nodes, 2.7ms at 8 nodes, and 7ms at 32 nodes. This confirms that synchronization overhead remains in the single-digit millisecond range, fast enough for BSP workloads requiring frequent barriers.
 
 \subsection{Serverless Execution Time Composition}
 Figure \ref{fig:timecomposition} shows the breakdown of execution time into three phases: initialization (connection setup via NAT traversal), data generation, and computation. This breakdown provides insight into where time is spent in serverless execution and helps explain performance differences across platforms.
-\begin{figure*}[ht]
+\begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\textwidth]{figure14.jpg}
+    \includegraphics[width=\linewidth]{figure14.jpg}
     \end{center}
     \caption{Serverless execution time composition: initialization, data generation, and computation phases}
     \label{fig:timecomposition}
-\end{figure*}
+\end{figure}
 
 %
 % GVL: I STRONGLY SUGGEST TO USE MY CLIP SPACING AS FIGURES MUST NOT HAVE A DOUBLE CAPTION!
@@ -989,22 +989,22 @@ At 32 nodes, the NAT traversal initialization phase dominates wall-clock time fo
 \subsection{Cost Analysis}
 
 A key motivation for serverless computing is cost optimization for bursty workloads. We implemented a comprehensive cost-tracking framework to provide empirical cost analysis for our experiments, capturing Lambda compute cost (GB-seconds), Step Functions orchestration cost (state transitions), and data transfer costs.
-\begin{figure*}[ht]
+\begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\textwidth]{figure15.jpg}
+    \includegraphics[width=\linewidth]{figure15.jpg}
     \end{center}
     \caption{Serverless execution cost analysis: Lambda compute and Step Functions orchestration}
     \label{fig:costanalysis}
-\end{figure*}
+\end{figure}
 Figure \ref{fig:costanalysis} shows the cost breakdown across node counts and operations. Step Functions orchestration cost (shown as the lighter portion) is negligible compared to Lambda compute cost. At 32 nodes, a Join using Redis-mediated communication costs approximately \$0.032, demonstrating the cost-effectiveness of serverless for distributed data operations.
 
-\begin{figure*}[ht]
+\begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\textwidth]{figure16.jpg}
+    \includegraphics[width=\linewidth]{figure16.jpg}
     \end{center}
     \caption{Cost comparison by operation and communication channel}
     \label{fig:costperoperation}
-\end{figure*}
+\end{figure}
 
 Figure \ref{fig:costperoperation} compares costs across operation types and communication channels. A key finding is that connection setup, not computation, dominates serverless cost at scale. At 32 workers, the NAT traversal phase (31.5 seconds $\times$ 32 functions $\times$ 10GB) accounts for \$0.17 while the actual distributed computation costs only \$0.004--\$0.016. This motivates future work on connection pooling and warm connection reuse. For storage-mediated channels, Join/Redis (\$0.032/execution at 32 nodes) is 4.7$\times$ cheaper than Join/S3 (\$0.150/execution) due to lower barrier latency.
 
