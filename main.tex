@@ -317,7 +317,7 @@ Including this library is an ideal choice, considering the limitations imposed b
 
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth]{figure6.png}
+    \includegraphics[width=\linewidth]{figure6.jpg}
     \end{center}
     \caption{Serverless Data Engineering Architecture}
     \label{fig:serverlessdataengineering}
@@ -329,7 +329,7 @@ Figure \ref{fig:serverlessdataengineering} illustrates our architecture. Our des
 
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=0.80\linewidth, trim={1cm 0.2cm 2cm 0.2cm}, clip]{figure7.png}
+    \includegraphics[width=0.80\linewidth, trim={1cm 0.2cm 2cm 0.2cm}, clip]{figure7.jpg}
     \end{center}
     \caption{AWS Step Function for Serverless Data Parallel Task}
     \label{fig:fmistatemachine}
@@ -884,14 +884,14 @@ Table \ref{tab:strong-exp_table} presents the results of strong scaling experime
 
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth]{figure8.png}
+    \includegraphics[width=\linewidth]{figure8.jpg}
     \end{center}
     \caption{Comparison of weak scaling for the Join operation across infrastructure including AWS Lambda}
     \label{fig:weakscalinground3}
 \end{figure}
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth]{figure9.png}
+    \includegraphics[width=\linewidth]{figure9.jpg}
     \end{center}
     \caption{Comparison of strong scaling for the Join operation across infrastructure including AWS Lambda}
     \label{fig:strongscalinground3}
@@ -925,7 +925,7 @@ To quantify the benefit of our direct NAT hole-punching approach, we conducted b
 
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth]{figure10.png}
+    \includegraphics[width=\linewidth]{figure10.jpg}
     \end{center}
     \caption{Communication Infrastructure Comparison: Direct TCP (NAT hole-punching) vs Redis vs S3 for distributed Join on AWS Lambda}
     \label{fig:infracomparison}
@@ -939,7 +939,7 @@ To demonstrate that our serverless architecture supports data engineering operat
 
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth]{figure11.png}
+    \includegraphics[width=\linewidth]{figure11.jpg}
     \end{center}
     \caption{GroupBy weak scaling on AWS Lambda using direct TCP communication}
     \label{fig:groupbyscaling}
@@ -953,7 +953,7 @@ To isolate communication overhead from application-level computation, we conduct
 
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth]{figure12.png}
+    \includegraphics[width=\linewidth]{figure12.pnjpgg}
     \end{center}
     \caption{AllReduce latency vs message size on AWS Lambda}
     \label{fig:allreducelatency}
@@ -963,7 +963,7 @@ Figure \ref{fig:allreducelatency} shows AllReduce latency across message sizes f
 
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth]{figure13.png}
+    \includegraphics[width=\linewidth]{figure13.jpg}
     \end{center}
     \caption{Barrier latency scaling on AWS Lambda}
     \label{fig:barrierlatency}
@@ -974,7 +974,7 @@ Figure \ref{fig:barrierlatency} shows Barrier latency scaling with node count. B
 \subsection{Serverless Execution Time Composition}
 Figure \ref{fig:timecomposition} shows the breakdown of execution time into three phases: initialization (connection setup via NAT traversal), data generation, and computation. This breakdown provides insight into where time is spent in serverless execution and helps explain performance differences across platforms.
 \begin{figure}[ht]
-    \begin{center}   \includegraphics[width=\linewidth]{figure14.png}
+    \begin{center}   \includegraphics[width=\linewidth]{figure14.jpg}
     \end{center}
     \caption{Serverless execution time composition: initialization, data generation, and computation phases}
     \label{fig:timecomposition}
@@ -989,7 +989,7 @@ At 32 nodes, the NAT traversal initialization phase dominates wall-clock time fo
 
 A key motivation for serverless computing is cost optimization for bursty workloads. We implemented a comprehensive cost-tracking framework to provide empirical cost analysis for our experiments, capturing Lambda compute cost (GB-seconds), Step Functions orchestration cost (state transitions), and data transfer costs.
 \begin{figure}[ht]
-    \begin{center}    \includegraphics[width=\linewidth]{figure15.png}
+    \begin{center}    \includegraphics[width=\linewidth]{figure15.jpg}
     \end{center}
     \caption{Serverless execution cost analysis: Lambda compute and Step Functions orchestration}
     \label{fig:costanalysis}
@@ -997,7 +997,7 @@ A key motivation for serverless computing is cost optimization for bursty worklo
 Figure \ref{fig:costanalysis} shows the cost breakdown across node counts and operations. Step Functions orchestration cost (shown as the lighter portion) is negligible compared to Lambda compute cost. At 32 nodes, a Join using Redis-mediated communication costs approximately \$0.032, demonstrating the cost-effectiveness of serverless for distributed data operations.
 
 \begin{figure}[ht]
-    \begin{center}    \includegraphics[width=\linewidth]{figure16.png}
+    \begin{center}    \includegraphics[width=\linewidth]{figure16.jpg}
     \end{center}
     \caption{Cost comparison by operation and communication channel}
     \label{fig:costperoperation}
