@@ -940,7 +940,7 @@ To demonstrate that our serverless architecture supports data engineering operat
     \label{fig:groupbyscaling}
 \end{figure}
 
-Figure \ref{fig:groupbyscaling} shows GroupBy weak scaling results on Lambda with 9.1 million rows per node. The operation scales from approximately 5 seconds at 1 node to 26 seconds at 16 nodes, achieving a 5$\times$ increase from baseline. This follows a similar scaling pattern to Join, demonstrating that shuffle-based distributed operators work reliably in serverless environments.
+Figure \ref{fig:groupbyscaling} shows GroupBy weak scaling results on Lambda with 50 million rows per node using associative aggregation operations (sum and max). With the combiner optimization, local pre-aggregation reduces shuffle data from 50M rows to approximately 1000 rows per node before the all-to-all exchange. The operation scales from 20.1 seconds at 1 node to 27.1 seconds at 32 nodes---a ratio of only 1.35$\times$, demonstrating excellent weak scaling for shuffle-based distributed operators in serverless environments.
 
 \subsection{Communication Microbenchmarks}
 
@@ -1003,7 +1003,7 @@ Figure \ref{fig:costanalysis} shows the cost breakdown across node counts and op
 
 Figure \ref{fig:costperoperation} compares costs across operation types and communication channels. A key finding is that connection setup, not computation, dominates serverless cost at scale. At 32 workers, the NAT traversal phase (31.5 seconds $\times$ 32 functions $\times$ 10GB) accounts for \$0.17 while the actual distributed computation costs only \$0.004--\$0.016. This motivates future work on connection pooling and warm connection reuse. For storage-mediated channels, Join/Redis (\$0.032/execution at 32 nodes) is 4.7$\times$ cheaper than Join/S3 (\$0.150/execution) due to lower barrier latency.
 
-Despite the overhead costs, serverless remains highly cost-effective for bursty, intermittent workloads where provisioned infrastructure would incur idle time charges. The total cost for all revision experiments (96 Lambda executions across 5 experiment types) was only \$2.98.
+Despite the overhead costs, serverless remains highly cost-effective for bursty, intermittent workloads where provisioned infrastructure would incur idle time charges. The total cost for all revision experiments (120 Lambda executions across 5 experiment types) was only \$3.25.
 
 % !TEX root = ../main.tex
 \section{Future Work}
