@@ -972,8 +972,8 @@ Figure \ref{fig:timecomposition} shows the breakdown of execution time into thre
     \begin{center}
     \includegraphics[width=\linewidth]{figure14.jpg}
     \end{center}
-    \caption{Serverless execution time composition: initialization, data generation, and computation phases}
-    \label{fig:timecomposition}
+    \caption{Per-Execution Cost Analysis. This figure shows the empirical cost breakdown for different operations and communication channels on AWS Lambda, including Lambda compute costs and Step Functions orchestration costs.}
+    \label{fig:percostanalysis}
 \end{figure}
 
 %
@@ -988,8 +988,8 @@ A key motivation for serverless computing is cost optimization for bursty worklo
     \begin{center}
     \includegraphics[width=\linewidth]{figure15.jpg}
     \end{center}
-    \caption{Serverless execution cost analysis: Lambda compute and Step Functions orchestration}
-    \label{fig:costanalysis}
+    \caption{AllReduce Latency vs. Message Size. This figure shows the latency of the AllReduce collective operation across various message sizes for different worker counts on AWS Lambda.}
+    \label{fig:allreducelatency}
 \end{figure}
 Figure \ref{fig:costanalysis} shows the cost breakdown across node counts and operations. Step Functions orchestration cost (shown as the lighter portion) is negligible compared to Lambda compute cost. At 32 nodes, a Join using Redis-mediated communication costs approximately \$0.032, demonstrating the cost-effectiveness of serverless for distributed data operations.
 
@@ -997,13 +997,47 @@ Figure \ref{fig:costanalysis} shows the cost breakdown across node counts and op
     \begin{center}
     \includegraphics[width=\linewidth]{figure16.jpg}
     \end{center}
-    \caption{Cost comparison by operation and communication channel}
-    \label{fig:costperoperation}
+    \caption{Barrier Latency vs. Node Count. This figure shows the scaling of barrier synchronization latency as the number of workers increases on AWS Lambda.}
+    \label{fig:barrierlatencyscaling}
 \end{figure}
 
-Figure \ref{fig:costperoperation} compares costs across operation types and communication channels. A key finding is that connection setup, not computation, dominates serverless cost at scale. At 32 workers, the NAT traversal phase (31.5 seconds $\times$ 32 functions $\times$ 10GB) accounts for \$0.17 while the actual distributed computation costs only \$0.004--\$0.016. This motivates future work on connection pooling and warm connection reuse. For storage-mediated channels, Join/Redis (\$0.032/execution at 32 nodes) is 4.7$\times$ cheaper than Join/S3 (\$0.150/execution) due to lower barrier latency.
+Figure \ref{fig:barrierlatencyscaling} shows barrier latency scaling with node count on AWS Lambda. Barrier latency scales with $\log_2(N)$ as expected for a binomial tree algorithm, confirming that synchronization overhead remains in the single-digit millisecond range, suitable for BSP workloads requiring frequent barriers.
 
 Despite the overhead costs, serverless remains highly cost-effective for bursty, intermittent workloads where provisioned infrastructure would incur idle time charges. The total cost for all revision experiments (120 Lambda executions across 5 experiment types) was only \$3.25.
+
+To provide a clear comparison between the serverless and serverful paradigms, we calculated the estimated cost for a representative distributed join operation on both AWS Lambda and an equivalent number of EC2 instances. Table~\ref{tab:costcomparison} presents the cost for a 32-worker weak scaling join, based on our experimental timing data and on-demand pricing in the \texttt{us-east-1} region as of January 2026.
+
+\begin{table}[ht]
+\centering
+\caption{Per-Execution Cost Comparison: 32-Worker Weak Scaling Join}
+\label{tab:costcomparison}
+\begin{tabular}{|l|l|l|l|l|}
+\hline
+\textbf{Platform} & \textbf{Instance/Memory} & \textbf{Exec Time (s)} & \textbf{Billing Model} & \textbf{Cost (USD)} \\
+\hline
+AWS Lambda & 10 GB & 46.56 & Per-ms GB-s & \$0.032 \\
+\hline
+AWS EC2 & m3.xlarge (4 vCPU, 15 GB) & 41.84 & Per-s instance-hour & \$0.238 \\
+\hline
+\end{tabular}
+\end{table}
+
+The cost for EC2 is calculated based on the on-demand hourly rate for 32 \texttt{m3.xlarge} instances, billed for the duration of the execution. The cost for Lambda is derived from the total GB-seconds consumed by the 32 functions, including initialization and communication overhead. The results show that for this bursty, short-running workload, the serverless approach is approximately \textbf{7.4 times more cost-effective} than provisioning a cluster of virtual machines that would sit idle between executions.
+
+\subsection{Fault Tolerance and Robustness Considerations}
+\label{sec:faulttolerance}
+
+Our design, which enables tightly-coupled BSP-style computation in a serverless environment, introduces specific trade-offs regarding fault tolerance that differ from traditional, embarrassingly parallel serverless applications. We explicitly acknowledge these trade-offs and their implications for the system's robustness.
+
+The current implementation adheres to the classic Bulk Synchronous Parallel (BSP) model, where all workers are expected to complete each super-step synchronously. Consequently, the failure of a single worker (i.e., a Lambda function) during the computation phase will lead to the failure of the entire distributed task. This is consistent with the behavior of many MPI-based applications in HPC environments, where the loss of a single process often requires a full restart of the job. In our architecture, partial failures are not recoverable without restarting the workflow, as we have not yet implemented checkpointing mechanisms.
+
+However, the system is not without any resilience. At the orchestration layer, AWS Step Functions provides a degree of robustness by managing the invocation of the Lambda functions. Step Functions can be configured with retry policies to automatically re-invoke a Lambda function that fails due to transient issues, such as a temporary network error or a brief service unavailability. This can handle intermittent failures during the initialization phase of a function before it joins the main computation.
+
+At the connection establishment layer, we have implemented several resiliency mechanisms in TCPunch, the NAT traversal component responsible for IP address exchange in the FMI communicator. First, the protocol implements automatic retry logic with a configurable maximum of three protocol-level retries for timeout or error conditions. To maintain session state across these retries, the server issues reconnect tokens that clients can use to resume a pairing operation without starting from scratch. Second, the hole-punching logic employs exponential backoff with jitter when connection attempts fail, preventing thundering herd scenarios when multiple workers retry simultaneously. Third, after a successful hole punch, both peers perform a validation handshake using a magic number verification to ensure the connection was established correctly before proceeding with data transfer. These mechanisms significantly improve the reliability of the connection establishment phase, which is critical in serverless environments where transient network issues are common.
+
+The architecture also relies on two external stateful components: the Rendezvous Server and the Redis instance. While these represent potential single points of failure in a basic deployment, they can be deployed in highly-available configurations using standard cloud practices (e.g., load balancers, read replicas, cluster mode) to mitigate this risk.
+
+In summary, our design prioritizes achieving high performance for communication-intensive workloads by trading the stateless, independent-failure model of conventional serverless computing for the performance benefits of a coupled, BSP-style architecture. This makes the system well-suited for performance-critical batch processing workloads where the cost of an occasional full restart is acceptable. As noted in our Future Work section, we plan to enhance the system's resilience by implementing checkpointing and recovery mechanisms inspired by frameworks like Twister2, which will allow for the recovery of long-running jobs from partial failures.
 
 % !TEX root = ../main.tex
 \section{Future Work}
