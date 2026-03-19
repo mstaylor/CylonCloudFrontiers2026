@@ -167,7 +167,7 @@ Scientific fields with significant data processing requirements, such as genomic
 
 One of the fundamental concepts in data science is the dataframe. In the Python ecosystem, Pandas\cite{mckinney2011pandas} was created as a Python derivative of the R \textit{data.frame} class. However, one significant limitation of Pandas is that it can only execute on a single core. In contrast, frameworks like Apache Spark, a Java Virtual Machine (JVM) framework, offer similar capabilities and improved performance and support the dataframe abstraction. One notable drawback of Spark is that it operates as a framework rather than a standalone Python library. While there is support for Python through PySpark, its usage necessitates the configuration, setup, and deployment of a Spark cluster. The JVM-to-Python translations introduced by Spark add a substantial performance bottleneck compared to the C++-to-Python translation implemented by Cylon and other high-performance Python libraries, which are more lightweight\cite{abeykoon2020data}.
 
-Similar to the Cylon library, the Twister2 toolkit developed by Kamburugamuwe et al. is designed using the Bulk Synchronous Parallel (BSP) architecture, based on the observed advantages of scalability and performance. It also incorporates a dataframe API implemented in Java\cite{perera2023depth}. While MPI implementations encompass scalable and efficient communication routines, their process launching mechanisms work well with mainstream HPC systems but are incompatible with some environments that adopt their own resource management systems \cite{shan2022hybrid}. A crucial abstraction introduced by Twister2 is TSets, a concept similar to dataframes or, equivalently, RDDs in Apache Spark or datasets in Apache Flink. Twister2 is considered a foundational step towards high-performance data engineering research and serves as a direct precursor to Cylon\cite{pererathesis}.
+Similar to the Cylon library, the Twister2 toolkit developed by Kamburugamuwe et al. is designed using the Bulk Synchronous Parallel (BSP) architecture, based on the observed advantages of scalability and performance. It also incorporates a dataframe API implemented in Java\cite{perera2023depth}. While MPI implementations encompass scalable and efficient communication routines, their process launching mechanisms work well with mainstream HPC systems but are incompatible with some environments that adopt their own resource management systems \cite{shan2022hybrid}. A crucial abstraction introduced by Twister2 is TSets, a concept similar to dataframes or, equivalently, RDDs in Apache Spark or datasets in Apache Flink. Twister2 is considered a foundational step towards high-performance data engineering research and serves as a direct precursor to Cylon\cite{pererathesis} and earlier work, Harp-DAAL~\cite{Harp}, a collective communication library that integrates HPC and big data frameworks to support machine learning applications and Twister \cite{ekanayake2010twister}, a runtime for iterative computation that distinguishes between static data (which stays the same across iterations) and dynamic data (which changes each iteration), reducing unnecessary data movement.
 
 The Dask, Modin, and Ray Python distributed dataframe packages are built on the Pandas API and share architectural goals similar to those of the Cylon architecture. A related project, Dask-Cudf, provides distributed dataframe capabilities on Nvidia GPUs, leveraging both Dask and Pandas to facilitate integration.  Perera et al. describe the potential to "supercharge" Dask/Ray performance by integrating Cylon using actors to create a highly efficient HP-DDF runtime\cite{perera2023supercharging}.
 
@@ -868,15 +868,6 @@ Where:
 	\end{tabular}
 \end{table}
 
-
-
-Figure \ref{fig:weakscalinground3} depicts the weak scaling experiments.  In an ideal scenario, we should see close to constant performance.  However, based on system overhead, we mitigate variation by executing ten iterations for each experiment.  In general, as parallelism is increased, resource and scheduling overhead contribute to the decreasing performance across weak scaling experiments.  We observe that our serverless communicator design resulted in performance that closely approximates EC2 weak scaling behavior.  
-Table \ref{tab:strong-exp_table} presents the results of strong scaling experiments involving 4.5 million rows. Like weak scaling, we conducted each experiment four times, performing ten iterations for each trial. The results of strong scaling are illustrated in Figure \ref{fig:strongscalinground3}. We observe high latencies across the infrastructure for fewer than four nodes. However, we also observe a general convergence of latency as the number of nodes ranges from 16 to 64. This supports utilizing cloud resources as a viable alternative for data-parallel pre-processing workloads.  We observe that the scaling efficiency of AWS Lambda achieves within 6.5\% of EC2 at 64 nodes, based on implementing direct communication via NAT Traversal TCP Hole Punching for serverless architectures such as AWS Lambda and AWS Fargate.
-
-
-
-%Furthermore, we assert that cost savings can be realized through cloud infrastructure, considering the variable incremental costs compared to the fixed costs associated with traditional HPC clusters. For instance, in the Fall 2024 Datascience 5110 class at UVA, we used a related implementation of FMI for AWS Lambda direct communication. This resulted in significant savings of over 70\% compared to traditional AWS usage for Spring 2024.
-
 \begin{figure}[ht]
     \begin{center}
     \includegraphics[width=\linewidth]{figure8.jpg}
@@ -891,6 +882,15 @@ Table \ref{tab:strong-exp_table} presents the results of strong scaling experime
     \caption{Comparison of strong scaling for the Join operation across infrastructure including AWS Lambda}
     \label{fig:strongscalinground3}
 \end{figure}
+
+Figure \ref{fig:weakscalinground3} depicts the weak scaling experiments.  In an ideal scenario, we should see close to constant performance.  However, based on system overhead, we mitigate variation by executing ten iterations for each experiment.  In general, as parallelism is increased, resource and scheduling overhead contribute to the decreasing performance across weak scaling experiments.  We observe that our serverless communicator design resulted in performance that closely approximates EC2 weak scaling behavior.  
+Table \ref{tab:strong-exp_table} presents the results of strong scaling experiments involving 4.5 million rows. Like weak scaling, we conducted each experiment four times, performing ten iterations for each trial. The results of strong scaling are illustrated in Figure \ref{fig:strongscalinground3}. We observe high latencies across the infrastructure for fewer than four nodes. However, we also observe a general convergence of latency as the number of nodes ranges from 16 to 64. This supports utilizing cloud resources as a viable alternative for data-parallel pre-processing workloads.  We observe that the scaling efficiency of AWS Lambda achieves within 6.5\% of EC2 at 64 nodes, based on implementing direct communication via NAT Traversal TCP Hole Punching for serverless architectures such as AWS Lambda and AWS Fargate.
+
+
+
+%Furthermore, we assert that cost savings can be realized through cloud infrastructure, considering the variable incremental costs compared to the fixed costs associated with traditional HPC clusters. For instance, in the Fall 2024 Datascience 5110 class at UVA, we used a related implementation of FMI for AWS Lambda direct communication. This resulted in significant savings of over 70\% compared to traditional AWS usage for Spring 2024.
+
+
 Table \ref{tab:speedup-comparison} provides a detailed comparison of scaling efficiency between Lambda and EC2. When comparing speedup relative to each platform's single-node baseline, Lambda achieved a 15.85$\times$ speedup at 64 nodes compared with EC2's 16.96$\times$, representing a difference of only 6.5\% in scaling behavior. This demonstrates that serverless functions can achieve scaling performance comparable to that of provisioned VMs for communication-intensive workloads.
 
 \begin{table}[ht]
@@ -939,8 +939,8 @@ To demonstrate that our serverless architecture supports data engineering operat
     \caption{GroupBy weak scaling on AWS Lambda using direct TCP communication}
     \label{fig:groupbyscaling}
 \end{figure}
-
 Figure \ref{fig:groupbyscaling} shows GroupBy weak scaling results on Lambda with 50 million rows per node using associative aggregation operations (sum and max). With the combiner optimization, local pre-aggregation reduces shuffle data from 50M rows to approximately 1000 rows per node before the all-to-all exchange. The operation scales from 20.1 seconds at 1 node to 27.1 seconds at 32 nodes---a ratio of only 1.35$\times$, demonstrating excellent weak scaling for shuffle-based distributed operators in serverless environments.
+
 
 \subsection{Communication Microbenchmarks}
 
