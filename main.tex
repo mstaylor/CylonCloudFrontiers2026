@@ -1011,13 +1011,14 @@ To provide a clear comparison between the serverless and serverful paradigms, we
 \centering
 \caption{Per-Execution Cost Comparison: 32-Worker Weak Scaling Join}
 \label{tab:costcomparison}
-\begin{tabular}{|l|l|l|l|l|}
+\small
+\begin{tabular}{|l|c|c|c|}
 \hline
-\textbf{Platform} & \textbf{Instance/Memory} & \textbf{Exec Time (s)} & \textbf{Billing Model} & \textbf{Cost (USD)} \\
+\textbf{Platform} & \textbf{Config} & \textbf{Time (s)} & \textbf{Cost} \\
 \hline
-AWS Lambda & 10 GB & 46.56 & Per-ms GB-s & \$0.032 \\
+AWS Lambda & 10 GB & 46.56 & \$0.032 \\
 \hline
-AWS EC2 & m3.xlarge (4 vCPU, 15 GB) & 41.84 & Per-s instance-hour & \$0.238 \\
+AWS EC2 & m3.xlarge & 41.84 & \$0.238 \\
 \hline
 \end{tabular}
 \end{table}
