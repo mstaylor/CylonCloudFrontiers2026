@@ -988,7 +988,7 @@ A key motivation for serverless computing is cost optimization for bursty worklo
     \begin{center}
     \includegraphics[width=\linewidth]{figure15.jpg}
     \end{center}
-    \caption{AllReduce Latency vs. Message Size. This figure shows the latency of the AllReduce collective operation across various message sizes for different worker counts on AWS Lambda.}
+    \caption{AllReduce Latency vs. Message Size. This figure shows the latency of the AllReduce collective operation across various message sizes for different AWS Lambda invocations.}
     \label{fig:allreducelatency}
 \end{figure}
 Figure \ref{fig:costanalysis} shows the cost breakdown across node counts and operations. Step Functions orchestration cost (shown as the lighter portion) is negligible compared to Lambda compute cost. At 32 nodes, a Join using Redis-mediated communication costs approximately \$0.032, demonstrating the cost-effectiveness of serverless for distributed data operations.
@@ -997,7 +997,7 @@ Figure \ref{fig:costanalysis} shows the cost breakdown across node counts and op
     \begin{center}
     \includegraphics[width=\linewidth]{figure16.jpg}
     \end{center}
-    \caption{Barrier Latency vs. Node Count. This figure shows the scaling of barrier synchronization latency as the number of workers increases on AWS Lambda.}
+    \caption{Barrier Latency vs. Node Count. This figure shows the scaling of barrier synchronization latency as the number of AWS Lambda function invocations increases.}
     \label{fig:barrierlatencyscaling}
 \end{figure}
 
