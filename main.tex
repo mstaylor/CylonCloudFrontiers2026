@@ -967,7 +967,7 @@ Figure \ref{fig:allreducelatency} shows AllReduce latency across message sizes f
 Figure \ref{fig:barrierlatency} shows Barrier latency scaling with node count. Barrier latency scales with $\log_2(N)$ as expected for a binomial tree algorithm: 0.9ms at 2 nodes, 2.7ms at 8 nodes, and 7ms at 32 nodes. This confirms that synchronization overhead remains in the single-digit millisecond range, fast enough for BSP workloads requiring frequent barriers.
 
 \subsection{Serverless Execution Time Composition}
-Figure \ref{fig:timecomposition} shows the breakdown of execution time into three phases: initialization (connection setup via NAT traversal), data generation, and computation. This breakdown provides insight into where time is spent in serverless execution and helps explain performance differences across platforms.
+The execution time for serverless distributed operations can be broken down into three phases: initialization (connection setup via NAT traversal), data generation, and computation. This breakdown provides insight into where time is spent in serverless execution and helps explain performance differences across platforms.
 \begin{figure}[ht]
     \begin{center}
     \includegraphics[width=\linewidth]{figure14.jpg}
