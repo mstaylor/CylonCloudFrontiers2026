@@ -1009,7 +1009,7 @@ To provide a clear comparison between the serverless and serverful paradigms, we
 
 \begin{table}[ht]
 \centering
-\caption{Per-Execution Cost Comparison: 32-Worker Weak Scaling Join. Lambda cost (USD) = workers $\times$ memory(GB) $\times$ duration(s) $\times$ \$0.0000166667/GB-s. EC2 cost (USD) = instances $\times$ hourly\_rate $\times$ duration(h).}
+\caption{Per-Execution Cost Comparison: 32-Worker Weak Scaling Join}
 \label{tab:costcomparison}
 \small
 \begin{tabular}{|l|c|c|c|}
@@ -1021,6 +1021,10 @@ AWS Lambda & 10 GB & 46.56 & \$0.032 \\
 AWS EC2 & m3.xlarge & 41.84 & \$0.238 \\
 \hline
 \end{tabular}
+\vspace{0.5em}
+\par\noindent\footnotesize
+Lambda cost (USD) = workers $\times$ memory(GB) $\times$ duration(s) $\times$ \$0.0000166667/GB-s \\
+EC2 cost (USD) = instances $\times$ hourly\_rate $\times$ duration(h)
 \end{table}
 
 The cost for EC2 is calculated based on the on-demand hourly rate for 32 \texttt{m3.xlarge} instances, billed for the duration of the execution. The cost for Lambda is derived from the total GB-seconds consumed by the 32 functions, including initialization and communication overhead. The results show that for this bursty, short-running workload, the serverless approach is approximately \textbf{7.4 times more cost-effective} than provisioning a cluster of virtual machines that would sit idle between executions.
