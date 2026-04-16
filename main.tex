@@ -948,7 +948,7 @@ To isolate communication overhead from application-level computation, we conduct
 
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth]{figure12.jpg}
+    \includegraphics[width=\linewidth]{figure15.jpg}
     \end{center}
     \caption{AllReduce latency vs message size on AWS Lambda}
     \label{fig:allreducelatency}
@@ -958,7 +958,7 @@ Figure \ref{fig:allreducelatency} shows AllReduce latency across message sizes f
 
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth]{figure13.jpg}
+    \includegraphics[width=\linewidth]{figure16.jpg}
     \end{center}
     \caption{Barrier latency scaling on AWS Lambda}
     \label{fig:barrierlatency}
@@ -970,7 +970,7 @@ Figure \ref{fig:barrierlatency} shows Barrier latency scaling with node count. B
 The execution time for serverless distributed operations can be broken down into three phases: initialization (connection setup via NAT traversal), data generation, and computation. This breakdown provides insight into where time is spent in serverless execution and helps explain performance differences across platforms.
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth]{figure14.jpg}
+    \includegraphics[width=\linewidth]{figure13.jpg}
     \end{center}
     \caption{Per-Execution Cost Analysis. This figure shows the empirical cost breakdown for different operations and communication channels on AWS Lambda, including Lambda compute costs and Step Functions orchestration costs.}
     \label{fig:percostanalysis}
@@ -986,22 +986,24 @@ At 32 nodes, the NAT traversal initialization phase dominates wall-clock time fo
 A key motivation for serverless computing is cost optimization for bursty workloads. We implemented a comprehensive cost-tracking framework to provide empirical cost analysis for our experiments, capturing Lambda compute cost (GB-seconds), Step Functions orchestration cost (state transitions), and data transfer costs.
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth]{figure15.jpg}
+    \includegraphics[width=\linewidth]{figure12.jpg}
     \end{center}
-    \caption{AllReduce Latency vs. Message Size. This figure shows the latency of the AllReduce collective operation across various message sizes for different AWS Lambda invocations.}
-    \label{fig:allreducelatency}
+    \caption{AllReduce weak scaling on AWS Lambda. This figure shows average AllReduce execution time as parallelism increases for AWS Lambda with 10GB memory.}
+    \label{fig:allreducescaling}
 \end{figure}
+Figure \ref{fig:allreducescaling} shows AllReduce weak scaling results on AWS Lambda with 10GB memory. Average execution time increases from approximately 5 seconds at 1 node to 25.5 seconds at 16 nodes, reflecting the growing communication overhead of the collective operation as parallelism increases.
+
 Figure \ref{fig:percostanalysis} shows the cost breakdown across node counts and operations. Step Functions orchestration cost (shown as the lighter portion) is negligible compared to Lambda compute cost. At 32 nodes, a Join using Redis-mediated communication costs approximately \$0.032, demonstrating the cost-effectiveness of serverless for distributed data operations.
 
 \begin{figure}[ht]
     \begin{center}
-    \includegraphics[width=\linewidth]{figure16.jpg}
+    \includegraphics[width=\linewidth]{figure14.jpg}
     \end{center}
-    \caption{Barrier Latency vs. Node Count. This figure shows the scaling of barrier synchronization latency as the number of AWS Lambda function invocations increases.}
-    \label{fig:barrierlatencyscaling}
+    \caption{Per-Execution Cost Comparison by Operation on AWS Lambda. This figure shows the empirical cost for different operations and communication channels across parallelism levels.}
+    \label{fig:costbyoperation}
 \end{figure}
 
-Figure \ref{fig:barrierlatencyscaling} shows barrier latency scaling with node count on AWS Lambda. Barrier latency scales with $\log_2(N)$ as expected for a binomial tree algorithm, confirming that synchronization overhead remains in the single-digit millisecond range, suitable for BSP workloads requiring frequent barriers.
+Figure \ref{fig:costbyoperation} compares per-execution costs across operations using direct TCP communication. Join (DIRECT) incurs the highest cost at 32 nodes, reaching approximately \$0.035, while Microbenchmark (DIRECT) remains the least expensive across all parallelism levels.
 
 Despite the overhead costs, serverless remains highly cost-effective for bursty, intermittent workloads where provisioned infrastructure would incur idle time charges. The total cost for all revision experiments (120 Lambda executions across 5 experiment types) was only \$3.25.
 
